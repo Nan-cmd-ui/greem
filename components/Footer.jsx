@@ -12,29 +12,19 @@ const Footer = () => {
 
     const linkSections = [
         {
-            title: "PRODUCTS",
-            links: [
-                { text: "Earphones", path: '/', icon: null },
-                { text: "Headphones", path: '/', icon: null },
-                { text: "Smartphones", path: '/', icon: null },
-                { text: "Laptops", path: '/', icon: null },
-            ]
-        },
-        {
             title: "WEBSITE?",
             links: [
                 { text: "Home", path: '/', icon: null },
                 { text: "Privacy Policy", path: '/', icon: null },
-                { text: "Become Plus Member", path: '/pricing', icon: null },
                 { text: "Create Your Store", path: '/create-store', icon: null },
             ]
         },
         {
             title: "CONTACT",
             links: [
-                { text: "+1-212-456-7890", path: '/', icon: MailIcon },
-                { text: "contact@example.com", path: '/', icon: PhoneIcon },
-                { text: "794 Francisco, 94102", path: '/', icon: MapPinIcon }
+                { text: "noblennamani70@gmail.com", path: '/', icon: MailIcon },
+                { text: "+2348037222633", path: '/', icon: PhoneIcon },
+                // { text: "794 Francisco, 94102", path: '/', icon: MapPinIcon }
             ]
         }
     ];
