@@ -31,11 +31,12 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
         if (!user?.id) return
 
+        setLoading(true)
         try {
             // 1. Get seller store
             const { data: storeData, error: storeError } = await supabase
                 .from("stores")
-                .select("id, total_products, total_orders, total_earnings")
+                .select("id, total_orders, total_earnings")
                 .eq("clerk_user_id", user.id)
                 .single()
 
@@ -47,7 +48,15 @@ export default function Dashboard() {
 
             const storeId = storeData.id
 
-            // 2. Fetch ratings (flat, no joins)
+            // 2. Count total products dynamically
+            const { count: totalProducts, error: countError } = await supabase
+                .from("products")
+                .select("id", { count: "exact", head: true })
+                .eq("store_id", storeId)
+
+            if (countError) console.error("Product count error:", countError?.message)
+
+            // 3. Fetch ratings (flat)
             const { data: ratings, error: ratingsError } = await supabase
                 .from("ratings")
                 .select("*")
@@ -56,7 +65,7 @@ export default function Dashboard() {
             if (ratingsError) console.error("Ratings fetch error:", ratingsError?.message)
 
             setDashboardData({
-                totalProducts: storeData.total_products || 0,
+                totalProducts: totalProducts || 0,
                 totalOrders: storeData.total_orders || 0,
                 totalEarnings: storeData.total_earnings || 0,
                 ratings: ratings || [],

@@ -3,8 +3,8 @@ import { useEffect, useState } from "react"
 import Loading from "../Loading"
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
-import AdminNavbar from "./AdminNavbar"
 import AdminSidebar from "./AdminSidebar"
+import Navbar from "../Navbar"
 
 const AdminLayout = ({ children }) => {
 
@@ -24,7 +24,7 @@ const AdminLayout = ({ children }) => {
         <Loading />
     ) : isAdmin ? (
         <div className="flex flex-col h-screen">
-            <AdminNavbar />
+            <Navbar />
             <div className="flex flex-1 items-start h-full overflow-y-scroll no-scrollbar">
                 <AdminSidebar />
                 <div className="flex-1 h-full p-5 lg:pl-12 lg:pt-12 overflow-y-scroll">

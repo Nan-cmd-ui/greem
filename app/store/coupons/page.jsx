@@ -1,12 +1,17 @@
 'use client'
+
 import { useEffect, useState } from "react"
 import { format } from "date-fns"
 import toast from "react-hot-toast"
 import { DeleteIcon, EditIcon } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { useUser } from "@clerk/nextjs"
 
 export default function Coupons() {
+    const { user } = useUser()
+
     const [loading, setLoading] = useState(true)
+    const [storeId, setStoreId] = useState(null)
     const [coupons, setCoupons] = useState([])
 
     const [newCoupon, setNewCoupon] = useState({
@@ -15,31 +20,43 @@ export default function Coupons() {
         description: '',
         discount: '',
         expiresAt: format(new Date(), 'yyyy-MM-dd'),
-        store_id: null, // for admin, specify store if adding coupon
     })
 
-    /* ---------------- FETCH ALL COUPONS ---------------- */
+    /* ---------------- FETCH STORE + COUPONS ---------------- */
     const fetchCoupons = async () => {
-        setLoading(true)
-        try {
-            const { data, error } = await supabase
-                .from("coupons")
-                .select("*, store:store_id(id, name)") // fetch store info for admin view
-                .order("created_at", { ascending: false })
+        if (!user?.id) return
 
-            if (error) throw error
-            setCoupons(data || [])
-        } catch (err) {
-            console.error("FETCH COUPONS ERROR 👉", err)
-            toast.error("Failed to load coupons")
-        } finally {
+        setLoading(true)
+
+        const { data: store, error: storeError } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("clerk_user_id", user.id)
+            .single()
+
+        if (storeError || !store) {
+            toast.error("Store not found")
             setLoading(false)
+            return
         }
+
+        setStoreId(store.id)
+
+        const { data, error } = await supabase
+            .from("coupons")
+            .select("*")
+            .eq("store_id", store.id)
+            .order("created_at", { ascending: false })
+
+        if (error) toast.error("Failed to fetch coupons")
+        else setCoupons(data || [])
+
+        setLoading(false)
     }
 
     /* ---------------- ADD OR EDIT COUPON ---------------- */
     const handleAddOrEditCoupon = async () => {
-        if (!newCoupon.store_id) throw "Please select a store"
+        if (!storeId) throw "Store not ready"
         if (!newCoupon.code || !newCoupon.discount) throw "Missing required fields"
 
         // EDIT
@@ -64,7 +81,7 @@ export default function Coupons() {
             const { error } = await supabase
                 .from("coupons")
                 .insert({
-                    store_id: newCoupon.store_id,
+                    store_id: storeId,
                     code: newCoupon.code.toUpperCase(),
                     description: newCoupon.description || null,
                     discount: Number(newCoupon.discount),
@@ -81,7 +98,6 @@ export default function Coupons() {
             description: '',
             discount: '',
             expiresAt: format(new Date(), 'yyyy-MM-dd'),
-            store_id: null,
         })
 
         await fetchCoupons()
@@ -102,7 +118,6 @@ export default function Coupons() {
     const editCoupon = (coupon) => {
         setNewCoupon({
             id: coupon.id,
-            store_id: coupon.store_id,
             code: coupon.code,
             description: coupon.description,
             discount: coupon.discount,
@@ -112,7 +127,7 @@ export default function Coupons() {
 
     useEffect(() => {
         fetchCoupons()
-    }, [])
+    }, [user])
 
     if (loading) return <p className="text-slate-400">Loading coupons…</p>
 
@@ -132,8 +147,6 @@ export default function Coupons() {
                 className="max-w-sm text-sm"
             >
                 <h2 className="text-2xl">{newCoupon.id ? "Edit" : "Add"} <span className="text-slate-800 font-medium">Coupon</span></h2>
-
-
                 <div className="flex gap-2 max-sm:flex-col mt-2">
                     <input type="text" placeholder="Coupon Code" className="w-full mt-2 p-2 border border-slate-200 rounded-md"
                         value={newCoupon.code} onChange={e => setNewCoupon({ ...newCoupon, code: e.target.value })} required />
@@ -163,14 +176,13 @@ export default function Coupons() {
                                 <th className="py-3 px-4 text-left font-semibold text-slate-600">Description</th>
                                 <th className="py-3 px-4 text-left font-semibold text-slate-600">Discount</th>
                                 <th className="py-3 px-4 text-left font-semibold text-slate-600">Expires At</th>
-                                <th className="py-3 px-4 text-left font-semibold text-slate-600">Store</th>
                                 <th className="py-3 px-4 text-left font-semibold text-slate-600">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                             {coupons.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-6 text-center text-slate-400">No coupons yet</td>
+                                    <td colSpan={5} className="py-6 text-center text-slate-400">No coupons yet</td>
                                 </tr>
                             ) : (
                                 coupons.map(coupon => (
@@ -179,7 +191,6 @@ export default function Coupons() {
                                         <td className="py-3 px-4 text-slate-800">{coupon.description}</td>
                                         <td className="py-3 px-4 text-slate-800">{coupon.discount}%</td>
                                         <td className="py-3 px-4 text-slate-800">{format(new Date(coupon.expires_at), 'yyyy-MM-dd')}</td>
-                                        <td className="py-3 px-4 text-slate-800">{coupon.store?.name || coupon.store_id}</td>
                                         <td className="py-3 px-4 text-slate-800 flex gap-2">
                                             <EditIcon className="w-5 h-5 text-blue-500 cursor-pointer hover:text-blue-700"
                                                 onClick={() => editCoupon(coupon)} />
